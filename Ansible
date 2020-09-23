@@ -1,0 +1,32 @@
+pipeline{
+    agent any
+    stages{
+        stage('git clone') {
+  steps {
+    git 'https://github.com/satishnaidu143/rideeasy.git'
+  }
+}
+stage('package') {
+  steps {
+    sh label: '', script: '''mvn clean package
+sudo scp /var/lib/jenkins/workspace/yschool-pipe/webapp/target/webapp.war /home/ansable/ '''
+  }
+}
+stage('archive artifacts') {
+  steps {
+    archiveArtifacts '**/*.war'
+  }
+}
+stage('junit reports') {
+  steps {
+    junit 'server/target/surefire-reports/*.xml'
+  }
+}
+stage('deployment via ansible') {
+  steps {
+    sshPublisher(publishers: [sshPublisherDesc(configName: 'ansible_server', transfers: [sshTransfer(cleanRemote: false, excludes: '', execCommand: '''sudo rm -f /var/lib/tomcat8/webapps/*.war
+ansible-playbook -i /home/ansable/ansible/tomcat8/inventory/hosts /home/ansable/ansible/tomcat8/tomcat8.yml''', execTimeout: 120000, flatten: false, makeEmptyDirs: false, noDefaultExcludes: false, patternSeparator: '[, ]+', remoteDirectory: '', remoteDirectorySDF: false, removePrefix: '', sourceFiles: '')], usePromotionTimestamp: false, useWorkspaceInPromotion: false, verbose: false)])
+      }
+   }
+ }
+}
